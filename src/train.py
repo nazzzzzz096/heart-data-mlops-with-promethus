@@ -4,6 +4,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 import joblib
 import mlflow
+import os
+
+os.makedirs("models", exist_ok=True)
 
 # Use local MLflow file store
 mlflow.set_tracking_uri("file:///tmp/mlruns")
