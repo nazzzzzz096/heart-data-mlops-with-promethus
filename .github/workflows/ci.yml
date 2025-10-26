@@ -1,0 +1,39 @@
+name: Train, Build and Push Docker Image
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  train-build-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: Install Python dependencies
+      run: pip install -r requirements.txt
+
+    - name: Train Model
+      run: python src/train.py
+
+    - name: Verify model file exists
+      run: test -f models/model.pkl
+
+    - name: Log in to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build Docker Image
+      run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/mlops-heart-api:latest .
+
+    - name: Push Docker Image
+      run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlops-heart-api:latest
