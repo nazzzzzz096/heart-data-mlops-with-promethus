@@ -4,32 +4,31 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 import joblib
 import mlflow
-import mlflow.sklearn
 
+# Use local MLflow file store
+mlflow.set_tracking_uri("file:///tmp/mlruns")
+mlflow.set_experiment("heart-mlops-demo")
+
+# Load dataset
 df = pd.read_csv("data/heart.csv")
-
 X = df.drop("target", axis=1)
 y = df["target"]
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-model = RandomForestClassifier(n_estimators=100, random_state=42)
-model.fit(X_train, y_train)
+# Start MLflow run
+with mlflow.start_run():
+    # Train model
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
 
-preds = model.predict(X_test)
-acc = accuracy_score(y_test, preds)
-print("Accuracy:", acc)
+    # Predict & calculate accuracy
+    y_pred = model.predict(X_test)
+    acc = accuracy_score(y_test, y_pred)
+    print(f"Accuracy: {acc}")
 
-mlflow.set_tracking_uri("http://127.0.0.1:5000")  # Local MLflow UI
-mlflow.set_experiment("heart-mlops-demo")
-
-with mlflow.start_run() as run:
+    # Log metric & model to MLflow
     mlflow.log_metric("accuracy", acc)
-    mlflow.sklearn.log_model(model, "model")
-    mlflow.register_model(
-        model_uri=f"runs:/{run.info.run_id}/model",
-        name="HeartDiseaseModel"
-    )
-
-joblib.dump(model, "models/model.pkl")
-print("Saved latest model → models/model.pkl")
+    mlflow.log_param("n_estimators", 100)
+    joblib.dump(model, "models/model.pkl")
+    mlflow.log_artifact("models/model.pkl")
